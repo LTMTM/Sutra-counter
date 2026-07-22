@@ -9,14 +9,24 @@ app.use(express.json());
 // 建議部署時於環境變數設定 MONGODB_URI
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://leungtm13_db_user:s9ohdoPosz4xc4GM@cluster0.q0ca3wp.mongodb.net/buddhist_counter?retryWrites=true&w=majority";
 
-mongoose.connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => {
-    console.log(" successfully connected to MongoDB Atlas!");
-}).catch((err) => {
-    console.error("❌ MongoDB Connection Error:", err);
-});
+// 全域連線快取 (相容 Vercel Serverless 與獨立 Node.js 伺服器)
+let isConnected = false;
+
+async function connectDB() {
+    if (isConnected && mongoose.connection.readyState === 1) {
+        return;
+    }
+    try {
+        await mongoose.connect(MONGODB_URI, {
+            serverSelectionTimeoutMS: 5000 // 設定 5 秒連線超時，避免 API 無限等待
+        });
+        isConnected = true;
+        console.log("✅ Successfully connected to MongoDB Atlas!");
+    } catch (err) {
+        console.error("❌ MongoDB Connection Error:", err.message);
+        throw new Error(`MongoDB 連線失敗: ${err.message}`);
+    }
+}
 
 const LogSchema = new mongoose.Schema({
     id: Number,
@@ -62,6 +72,7 @@ const SCRIPTURE_NAMES = {
 };
 
 async function getOrCreateState() {
+    await connectDB(); // 確保每次請求前已成功建立連線
     let state = await StateModel.findOne({ appId: 'main_counter' });
     if (!state) {
         state = await StateModel.create({
@@ -113,6 +124,7 @@ app.get('/api/state', async (req, res) => {
         const state = await getOrCreateState();
         res.json({ success: true, data: state });
     } catch (err) {
+        console.error("GET /api/state Error:", err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -152,6 +164,7 @@ app.post('/api/tap', async (req, res) => {
 
         res.json({ success: true, data: state });
     } catch (err) {
+        console.error("POST /api/tap Error:", err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -192,6 +205,7 @@ app.post('/api/manual', async (req, res) => {
 
         res.json({ success: true, data: state });
     } catch (err) {
+        console.error("POST /api/manual Error:", err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -209,6 +223,7 @@ app.post('/api/targets', async (req, res) => {
 
         res.json({ success: true, data: state });
     } catch (err) {
+        console.error("POST /api/targets Error:", err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -222,11 +237,16 @@ app.delete('/api/logs', async (req, res) => {
 
         res.json({ success: true, data: state });
     } catch (err) {
+        console.error("DELETE /api/logs Error:", err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 Buddhist Counter Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+        console.log(`🚀 Buddhist Counter Server running on port ${PORT}`);
+    });
+}
+
+module.exports = app;
