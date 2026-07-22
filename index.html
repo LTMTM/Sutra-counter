@@ -1,365 +1,971 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-TW" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雙人修持念經計數器</title>
+    <title>Dicky & Hannah 共修計經器</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        zen: {
+                            50: '#faf8f5',
+                            100: '#f3ede2',
+                            200: '#e5d7c3',
+                            300: '#d3bc9d',
+                            400: '#c09d73',
+                            500: '#b08351',
+                            600: '#9b6c43',
+                            700: '#7e5339',
+                            800: '#674433',
+                            900: '#55392d',
+                            950: '#2d1c15',
+                        },
+                        amberGold: '#d4af37'
+                    },
+                    fontFamily: {
+                        serif: ['"Noto Serif TC"', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&display=swap');
         body {
             font-family: 'Noto Serif TC', serif;
-            background: #121212;
-            color: #e0e0e0;
+            background-color: #2d1c15;
+            color: #f3ede2;
+            user-select: none;
         }
-        .wood-card {
-            background: linear-gradient(145deg, #1e1b18, #2a241f);
-            border: 1px solid #3d3228;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        
+        .wooden-fish-tap {
+            animation: tapEffect 0.12s ease-out;
         }
-        .gold-border { border-color: #d4af37; }
-        .gold-text { color: #dfb76c; }
-        .gold-btn {
-            background: linear-gradient(135deg, #c59b27, #9a761c);
-            color: #ffffff;
-            transition: all 0.2s;
+        
+        @keyframes tapEffect {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.92) rotate(-2deg); }
+            100% { transform: scale(1); }
         }
-        .gold-btn:hover {
-            background: linear-gradient(135deg, #d4af37, #b88e20);
-            transform: translateY(-2px);
+
+        .merit-float {
+            position: absolute;
+            animation: floatUp 1.2s forwards cubic-bezier(0.22, 1, 0.36, 1);
+            pointer-events: none;
+            font-weight: bold;
+            color: #d4af37;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            white-space: nowrap;
         }
-        .gold-btn:active { transform: translateY(1px); }
-        .tab-active {
-            border-bottom: 3px solid #dfb76c;
-            color: #dfb76c;
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-70px) scale(1.3); }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(45, 28, 21, 0.5);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #b08351;
+            border-radius: 3px;
         }
     </style>
 </head>
-<body class="min-h-screen pb-12">
-    <!-- Top Sync Status Bar -->
-    <div id="sync-bar" class="bg-stone-900 border-b border-stone-800 text-xs text-center py-2 text-stone-400 flex justify-center items-center gap-2">
-        <span id="sync-dot" class="w-2 h-2 rounded-full bg-yellow-500 inline-block"></span>
-        <span id="sync-status">檢查雲端連線狀態中...</span>
-    </div>
+<body class="h-full bg-zen-950 text-zen-100 flex flex-col justify-between overflow-x-hidden antialiased">
 
-    <div class="max-w-xl mx-auto px-4 pt-6">
-        <!-- Header -->
-        <header class="text-center mb-6">
-            <h1 class="text-3xl font-bold gold-text tracking-wider flex justify-center items-center gap-2">
-                <i class="fa-solid font-serif">☸</i> 雙人修持計數器
-            </h1>
-            <p class="text-xs text-stone-400 mt-1">Dicky & Hannah 共同修持記錄</p>
-        </header>
-
-        <!-- Main Navigation Tabs -->
-        <div class="flex border-b border-stone-800 mb-6 text-center text-sm">
-            <button id="tab-btn-counter" onclick="switchTab('counter')" class="flex-1 py-3 font-semibold tab-active">
-                <i class="fa-solid fa-hand-holding-heart mr-1"></i> 修持計數
-            </button>
-            <button id="tab-btn-stats" onclick="switchTab('stats')" class="flex-1 py-3 font-semibold text-stone-500">
-                <i class="fa-solid fa-chart-pie mr-1"></i> 共修總覽
-            </button>
-        </div>
-
-        <!-- COUNTER VIEW -->
-        <div id="view-counter" class="space-y-6">
-            <!-- User Switcher -->
-            <div class="wood-card p-2 rounded-xl flex gap-2">
-                <button id="user-btn-Dicky" onclick="selectUser('Dicky')" class="flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all bg-amber-900/40 text-amber-200 border border-amber-700/50">
-                    <i class="fa-solid fa-user mr-1.5"></i> Dicky
-                </button>
-                <button id="user-btn-Hannah" onclick="selectUser('Hannah')" class="flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all text-stone-400 hover:text-stone-200">
-                    <i class="fa-solid fa-user-nurse mr-1.5"></i> Hannah
-                </button>
-            </div>
-
-            <!-- Scripture Selector -->
-            <div class="wood-card p-4 rounded-xl">
-                <label class="block text-xs gold-text mb-2 font-semibold">選擇修持經典：</label>
-                <div class="grid grid-cols-2 gap-2">
-                    <button id="sutra-btn-金剛經" onclick="setScripture('金剛經')" class="py-2 px-3 rounded-lg text-xs font-semibold border border-amber-600/40 bg-amber-900/30 gold-text">
-                        《金剛經》
-                    </button>
-                    <button id="sutra-btn-地藏經上" onclick="setScripture('地藏經上')" class="py-2 px-3 rounded-lg text-xs font-semibold border border-stone-800 bg-stone-900/60 text-stone-400">
-                        《地藏經》上卷
-                    </button>
-                    <button id="sutra-btn-地藏經中" onclick="setScripture('地藏經中')" class="py-2 px-3 rounded-lg text-xs font-semibold border border-stone-800 bg-stone-900/60 text-stone-400">
-                        《地藏經》中卷
-                    </button>
-                    <button id="sutra-btn-地藏經下" onclick="setScripture('地藏經下')" class="py-2 px-3 rounded-lg text-xs font-semibold border border-stone-800 bg-stone-900/60 text-stone-400">
-                        《地藏經》下卷
-                    </button>
+    <header class="bg-zen-900/90 border-b border-zen-700/50 backdrop-blur sticky top-0 z-40 px-4 py-3 shadow-md">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-zen-800 border border-amberGold/40 flex items-center justify-center text-amberGold text-xl shadow-inner">
+                    <i class="fa-solid fa-dharmachakra"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-wider text-amberGold flex items-center space-x-2">
+                        <span>雙人修持計經器</span>
+                        <span id="db-connection-badge" class="text-[10px] px-2.5 py-0.5 rounded-full bg-zen-950 text-zen-400 border border-zen-800 font-normal">
+                            <i class="fa-solid fa-circle-notch fa-spin mr-1"></i>連線中
+                        </span>
+                    </h1>
+                    <p class="text-xs text-zen-300">Dicky & Hannah 共修紀錄</p>
                 </div>
             </div>
 
-            <!-- Counter Display Card -->
-            <div class="wood-card p-6 rounded-2xl text-center relative overflow-hidden border border-amber-900/30">
-                <div class="text-xs text-stone-400 mb-1">目前選擇：<span id="display-user" class="gold-text font-bold">Dicky</span> - <span id="display-sutra" class="text-amber-300 font-bold">《金剛經》</span></div>
+            <!-- Profile Selector -->
+            <div class="flex items-center space-x-1 bg-zen-950 p-1 rounded-full border border-zen-700">
+                <button id="user-dicky-btn" onclick="switchUser('dicky')" class="px-3.5 py-1 rounded-full text-xs font-semibold transition-all duration-300 flex items-center space-x-1">
+                    <span>👦</span>
+                    <span id="label-user-dicky">Dicky</span>
+                </button>
+                <button id="user-hannah-btn" onclick="switchUser('hannah')" class="px-3.5 py-1 rounded-full text-xs font-semibold transition-all duration-300 flex items-center space-x-1">
+                    <span>👧</span>
+                    <span id="label-user-hannah">Hannah</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-4xl w-full mx-auto p-4 space-y-6">
+        
+        <!-- Navigation Tabs -->
+        <div class="flex rounded-xl bg-zen-900/80 p-1 border border-zen-800 shadow-inner">
+            <button onclick="switchTab('counter')" id="tab-btn-counter" class="flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center space-x-2 bg-zen-700 text-amberGold shadow">
+                <i class="fa-solid fa-drum"></i>
+                <span>念經計數</span>
+            </button>
+            <button onclick="switchTab('stats')" id="tab-btn-stats" class="flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center space-x-2 text-zen-300 hover:text-zen-100">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>個人與共修獨立統計</span>
+            </button>
+        </div>
+
+        <!-- TAB 1: COUNTER -->
+        <section id="tab-counter" class="space-y-6">
+            
+            <!-- Active User Personal Stats Bar -->
+            <div class="bg-zen-900/60 rounded-2xl p-4 border border-zen-800 space-y-3 shadow-md">
+                <div class="flex items-center justify-between border-b border-zen-800/80 pb-2">
+                    <h2 class="text-xs font-bold text-amberGold tracking-wider flex items-center">
+                        <i class="fa-solid fa-user-check mr-1.5"></i><span id="active-user-overview-title">Dicky</span> 個人累計修持遍數
+                    </h2>
+                    <span class="text-[10px] text-zen-400">（切換右上角名字可更換修持者）</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                    <div class="bg-zen-950/80 rounded-xl p-2.5 border border-zen-800 text-center">
+                        <p class="text-[11px] text-zen-400">《金剛經》</p>
+                        <p class="text-lg font-bold text-amberGold mt-0.5" id="stat-user-jingang">0 <span class="text-xs text-zen-300 font-normal">遍</span></p>
+                    </div>
+                    <div class="bg-zen-950/80 rounded-xl p-2.5 border border-zen-800 text-center">
+                        <p class="text-[11px] text-zen-400">地藏經《上卷》</p>
+                        <p class="text-lg font-bold text-amberGold mt-0.5" id="stat-user-dizang-shang">0 <span class="text-xs text-zen-300 font-normal">遍</span></p>
+                    </div>
+                    <div class="bg-zen-950/80 rounded-xl p-2.5 border border-zen-800 text-center">
+                        <p class="text-[11px] text-zen-400">地藏經《中卷》</p>
+                        <p class="text-lg font-bold text-amberGold mt-0.5" id="stat-user-dizang-zhong">0 <span class="text-xs text-zen-300 font-normal">遍</span></p>
+                    </div>
+                    <div class="bg-zen-950/80 rounded-xl p-2.5 border border-zen-800 text-center">
+                        <p class="text-[11px] text-zen-400">地藏經《下卷》</p>
+                        <p class="text-lg font-bold text-amberGold mt-0.5" id="stat-user-dizang-xia">0 <span class="text-xs text-zen-300 font-normal">遍</span></p>
+                    </div>
+                    <div class="bg-amberGold/10 border border-amberGold/40 rounded-xl p-2.5 text-center col-span-2 sm:col-span-1 flex flex-col justify-center">
+                        <p class="text-[11px] text-amberGold font-bold"><i class="fa-solid fa-book mr-1"></i>地藏經 (完整)</p>
+                        <p class="text-lg font-extrabold text-amberGold mt-0.5" id="stat-user-dizang-full">0 <span class="text-xs text-zen-300 font-normal">部</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-zen-900 rounded-2xl p-5 border border-zen-700/60 shadow-lg space-y-4">
                 
-                <div class="my-6">
-                    <div id="count-number" class="text-6xl font-bold tracking-tight gold-text">0</div>
-                    <div class="text-xs text-stone-500 mt-2">個人累計遍數</div>
+                <div class="space-y-2">
+                    <span class="text-xs text-zen-300 font-medium block">選擇當前修持經典：</span>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <button id="scripture-btn-jingang" onclick="setScripture('jingang')" class="py-2.5 px-3 rounded-xl text-xs font-bold transition-all border border-zen-700 bg-zen-700 text-amberGold">
+                            《金剛經》
+                        </button>
+                        <button id="scripture-btn-dizang_shang" onclick="setScripture('dizang_shang')" class="py-2.5 px-3 rounded-xl text-xs font-bold transition-all border border-zen-800 text-zen-400 hover:text-zen-200">
+                            《地藏經 上卷》
+                        </button>
+                        <button id="scripture-btn-dizang_zhong" onclick="setScripture('dizang_zhong')" class="py-2.5 px-3 rounded-xl text-xs font-bold transition-all border border-zen-800 text-zen-400 hover:text-zen-200">
+                            《地藏經 中卷》
+                        </button>
+                        <button id="scripture-btn-dizang_xia" onclick="setScripture('dizang_xia')" class="py-2.5 px-3 rounded-xl text-xs font-bold transition-all border border-zen-800 text-zen-400 hover:text-zen-200">
+                            《地藏經 下卷》
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Individual Ksitigarbha Full Count Notice -->
-                <div id="ksitigarbha-notice" class="hidden mb-4 p-2.5 rounded-lg bg-amber-950/40 border border-amber-800/40 text-xs text-amber-200">
-                    ✨ <span id="ksitigarbha-user-name">Dicky</span> 已完成 <span id="ksitigarbha-full-count" class="font-bold text-amber-400">0</span> 部完整《地藏經》
-                    <div class="text-[10px] text-stone-400 mt-1">獨立完成上/中/下卷各 1 遍自動進位 1 部</div>
+                <!-- Active User Display -->
+                <div class="text-center py-1 border-t border-zen-800/80 pt-3">
+                    <span class="text-xs px-3.5 py-1.5 rounded-full bg-zen-950 text-zen-200 border border-zen-700">
+                        當前記錄人：<strong id="active-user-display-name" class="text-amberGold font-bold">Dicky</strong>
+                    </span>
                 </div>
 
-                <!-- Counter Actions -->
-                <div class="space-y-3">
-                    <button onclick="addCount(1)" class="w-full py-4 gold-btn text-lg font-bold rounded-xl shadow-lg flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-plus text-sm"></i> 完成 1 遍
+                <!-- Interactive Tap Counter Box -->
+                <div class="relative flex flex-col items-center justify-center py-8 my-2 bg-gradient-to-b from-zen-950/90 to-zen-900/50 rounded-xl border border-zen-800/80 shadow-inner overflow-hidden" id="tap-container">
+                    
+                    <!-- Floating Merit Effect Anchor -->
+                    <div id="float-anchor" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10"></div>
+
+                    <!-- Tap Button (Wooden Fish SVG Visual) -->
+                    <div onclick="tapWoodenFish(1)" id="wooden-fish" class="cursor-pointer transition-transform duration-150 transform hover:scale-105 active:scale-95 group relative">
+                        <svg class="w-36 h-36 md:w-44 md:h-44 text-zen-500 drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] group-hover:text-zen-400 transition" viewBox="0 0 200 200" fill="currentColor">
+                            <path d="M100 20 C50 20 20 60 20 110 C20 160 60 180 100 180 C150 180 180 160 180 110 C180 60 150 20 100 20 Z" fill="#8d5b32" stroke="#523218" stroke-width="6"/>
+                            <ellipse cx="100" cy="115" rx="55" ry="35" fill="#5f3a1d" />
+                            <circle cx="70" cy="80" r="8" fill="#2d1c15" />
+                            <path d="M120 75 Q150 85 145 105" stroke="#2d1c15" stroke-width="5" fill="none" stroke-linecap="round"/>
+                            <path d="M50 120 C70 145 130 145 150 120" stroke="#3b2210" stroke-width="8" fill="none" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+
+                    <p class="text-xs text-zen-400 mt-4 tracking-widest">點擊木魚圖示累計次數 (+1)</p>
+                    
+                    <!-- Large Count Display -->
+                    <div class="mt-4 text-center">
+                        <div class="text-4xl font-extrabold text-amberGold tracking-tight font-serif" id="current-scripture-count">0</div>
+                        <p class="text-xs text-zen-400 mt-1" id="current-scripture-label">《金剛經》【Dicky】目前完成次數</p>
+                    </div>
+                </div>
+
+                <!-- Quick Batch Add Buttons -->
+                <div class="grid grid-cols-2 gap-3 pt-1">
+                    <button onclick="tapWoodenFish(1)" class="py-3 bg-zen-800 hover:bg-zen-700 text-zen-100 rounded-xl text-sm font-bold border border-zen-700 transition flex items-center justify-center space-x-2 shadow-sm active:scale-95">
+                        <i class="fa-solid fa-plus text-amberGold"></i>
+                        <span>+1 遍</span>
                     </button>
-                    <button onclick="promptManualEntry()" class="w-full py-2.5 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs rounded-lg transition-all border border-stone-700">
-                        <i class="fa-solid fa-pen-to-square mr-1"></i> 手動補錄遍數
+                    <button onclick="openManualInputModal()" class="py-3 bg-zen-800/80 hover:bg-zen-700 text-amberGold rounded-xl text-sm font-bold border border-amberGold/30 transition flex items-center justify-center space-x-2 shadow-sm active:scale-95">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>手動補錄</span>
                     </button>
                 </div>
             </div>
-        </div>
 
-        <!-- STATS VIEW -->
-        <div id="view-stats" class="space-y-6 hidden">
-            <!-- Combined Grand Totals -->
-            <div class="grid grid-cols-2 gap-4">
-                <div class="wood-card p-4 rounded-xl text-center border-l-4 border-amber-500">
-                    <div class="text-xs text-stone-400">兩人合共《金剛經》</div>
-                    <div id="total-diamond" class="text-2xl font-bold gold-text mt-1">0 <span class="text-xs font-normal">遍</span></div>
+            <div class="bg-zen-900/60 rounded-2xl p-5 border border-zen-800 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-zen-200 flex items-center">
+                        <i class="fa-solid fa-clock-rotate-left text-amberGold mr-2"></i>最新修持紀錄
+                    </h3>
+                    <div class="flex items-center space-x-2">
+                        <select id="log-filter-user" onchange="renderUI()" class="bg-zen-950 text-xs text-zen-300 border border-zen-700 rounded-lg px-2 py-1 focus:outline-none">
+                            <option value="all">全部成員</option>
+                            <option value="dicky">👦 Dicky</option>
+                            <option value="hannah">👧 Hannah</option>
+                        </select>
+                        <button onclick="clearLogs()" class="text-xs text-zen-400 hover:text-red-400 transition">清空紀錄</button>
+                    </div>
                 </div>
-                <div class="wood-card p-4 rounded-xl text-center border-l-4 border-yellow-500">
-                    <div class="text-xs text-stone-400">兩人合共《地藏經》</div>
-                    <div id="total-ksitigarbha" class="text-2xl font-bold text-yellow-400 mt-1">0 <span class="text-xs font-normal">部</span></div>
+                <div id="recent-logs-list" class="space-y-2 max-h-52 overflow-y-auto custom-scrollbar pr-1">
+                    <!-- Dynamic logs inserted here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: STATS -->
+        <section id="tab-stats" class="hidden space-y-6">
+            
+            <!-- Combined Grand Summary Box -->
+            <div class="bg-gradient-to-br from-zen-900 via-zen-900 to-zen-800 rounded-2xl p-6 border border-amberGold/30 shadow-xl space-y-4">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-zen-800 pb-3">
+                    <h3 class="text-sm font-bold text-amberGold tracking-wider flex items-center">
+                        <i class="fa-solid fa-chart-pie mr-2"></i>雙人共修總合概覽
+                    </h3>
+                    <span class="text-[11px] text-zen-300 bg-zen-950 px-3 py-1 rounded-full border border-zen-800">
+                        💡 地藏經上/中/下卷各自集齊1遍即可進位為1部完整經典
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+                    <div class="bg-zen-950/60 p-3 rounded-xl border border-zen-800">
+                        <p class="text-xs text-zen-400">《金剛經》</p>
+                        <p class="text-2xl font-extrabold text-amberGold mt-1" id="joint-total-jingang">0</p>
+                        <p class="text-[10px] text-zen-400">遍 (雙人總和)</p>
+                    </div>
+                    <div class="bg-zen-950/60 p-3 rounded-xl border border-zen-800">
+                        <p class="text-xs text-zen-400">《地藏經 上卷》</p>
+                        <p class="text-2xl font-extrabold text-amberGold mt-1" id="joint-total-dizang-shang">0</p>
+                        <p class="text-[10px] text-zen-400">遍 (雙人總和)</p>
+                    </div>
+                    <div class="bg-zen-950/60 p-3 rounded-xl border border-zen-800">
+                        <p class="text-xs text-zen-400">《地藏經 中卷》</p>
+                        <p class="text-2xl font-extrabold text-amberGold mt-1" id="joint-total-dizang-zhong">0</p>
+                        <p class="text-[10px] text-zen-400">遍 (雙人總和)</p>
+                    </div>
+                    <div class="bg-zen-950/60 p-3 rounded-xl border border-zen-800">
+                        <p class="text-xs text-zen-400">《地藏經 下卷》</p>
+                        <p class="text-2xl font-extrabold text-amberGold mt-1" id="joint-total-dizang-xia">0</p>
+                        <p class="text-[10px] text-zen-400">遍 (雙人總和)</p>
+                    </div>
+                    <div class="bg-amberGold/15 p-3 rounded-xl border border-amberGold/40 col-span-2 sm:col-span-1">
+                        <p class="text-xs text-amberGold font-bold">✨ 地藏經 (總部數)</p>
+                        <p class="text-2xl font-extrabold text-amberGold mt-1" id="joint-total-dizang-full">0</p>
+                        <p class="text-[10px] text-zen-300">部 (完整一部)</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Dicky Breakdown -->
-            <div class="wood-card p-5 rounded-xl space-y-3">
-                <div class="flex justify-between items-center border-b border-stone-800 pb-2">
-                    <span class="font-bold gold-text text-sm"><i class="fa-solid fa-user mr-1.5"></i> Dicky 修持明細</span>
-                    <span id="dicky-full-ksitigarbha" class="text-xs bg-amber-900/60 text-amber-300 px-2 py-0.5 rounded border border-amber-700/50">地藏經: 0 部</span>
+            <!-- DETAILED INDIVIDUAL BREAKDOWN CARDS -->
+            <div class="grid md:grid-cols-2 gap-5">
+                
+                <!-- Dicky Full Breakdown Card -->
+                <div class="bg-zen-900/80 rounded-2xl p-5 border border-amberGold/20 space-y-4 shadow-md">
+                    <div class="flex items-center justify-between border-b border-zen-800 pb-3">
+                        <span class="font-bold text-amberGold flex items-center text-base">
+                            <span class="mr-2 text-lg">👦</span> <span id="card-name-dicky">Dicky</span> 的獨立修持進度
+                        </span>
+                        <span class="text-xs font-bold text-amberGold bg-amberGold/10 px-2.5 py-1 rounded-full border border-amberGold/30" id="user-dicky-dizang-full-badge">✨ 已完成 0 部地藏經</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- 金剛經 -->
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-zen-200 font-bold">《金剛經》</span>
+                                <span class="text-amberGold font-bold" id="user-dicky-jingang-count">0 / 108 遍</span>
+                            </div>
+                            <div class="w-full bg-zen-950 rounded-full h-2.5 border border-zen-800 overflow-hidden">
+                                <div id="user-dicky-jingang-bar" class="bg-amberGold h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- 地藏經 完整部數 -->
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-zen-200 font-bold">《地藏經 完整部數》 (自動進位)</span>
+                                <span class="text-amberGold font-bold" id="user-dicky-dizang_full-count">0 / 100 部</span>
+                            </div>
+                            <div class="w-full bg-zen-950 rounded-full h-2.5 border border-zen-800 overflow-hidden">
+                                <div id="user-dicky-dizang_full-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- 地藏經 上、中、下卷獨立細項 -->
+                        <div class="pt-2">
+                            <p class="text-xs font-semibold text-zen-300 mb-2 flex items-center">
+                                <i class="fa-solid fa-book-open mr-1.5 text-amberGold"></i>地藏經 各卷未進位數與進度：
+                            </p>
+                            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                                <div class="bg-zen-950/70 p-2.5 rounded-xl border border-zen-800/80">
+                                    <p class="text-[11px] text-zen-400">上卷</p>
+                                    <p class="text-base font-extrabold text-zen-100 mt-0.5" id="user-dicky-dizang_shang-count">0</p>
+                                    <p class="text-[9px] text-zen-500">遍</p>
+                                </div>
+                                <div class="bg-zen-950/70 p-2.5 rounded-xl border border-zen-800/80">
+                                    <p class="text-[11px] text-zen-400">中卷</p>
+                                    <p class="text-base font-extrabold text-zen-100 mt-0.5" id="user-dicky-dizang_zhong-count">0</p>
+                                    <p class="text-[9px] text-zen-500">遍</p>
+                                </div>
+                                <div class="bg-zen-950/70 p-2.5 rounded-xl border border-zen-800/80">
+                                    <p class="text-[11px] text-zen-400">下卷</p>
+                                    <p class="text-base font-extrabold text-zen-100 mt-0.5" id="user-dicky-dizang_xia-count">0</p>
+                                    <p class="text-[9px] text-zen-500">遍</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-xs text-stone-300">
-                    <div>金剛經：<span id="dicky-diamond" class="font-bold text-white">0</span> 遍</div>
-                    <div>地藏經(上)：<span id="dicky-k-top" class="font-bold text-white">0</span> 遍</div>
-                    <div>地藏經(中)：<span id="dicky-k-mid" class="font-bold text-white">0</span> 遍</div>
-                    <div>地藏經(下)：<span id="dicky-k-bot" class="font-bold text-white">0</span> 遍</div>
+
+                <!-- Hannah Full Breakdown Card -->
+                <div class="bg-zen-900/80 rounded-2xl p-5 border border-rose-500/20 space-y-4 shadow-md">
+                    <div class="flex items-center justify-between border-b border-zen-800 pb-3">
+                        <span class="font-bold text-rose-300 flex items-center text-base">
+                            <span class="mr-2 text-lg">👧</span> <span id="card-name-hannah">Hannah</span> 的獨立修持進度
+                        </span>
+                        <span class="text-xs font-bold text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/30" id="user-hannah-dizang-full-badge">✨ 已完成 0 部地藏經</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- 金剛經 -->
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-zen-200 font-bold">《金剛經》</span>
+                                <span class="text-rose-300 font-bold" id="user-hannah-jingang-count">0 / 108 遍</span>
+                            </div>
+                            <div class="w-full bg-zen-950 rounded-full h-2.5 border border-zen-800 overflow-hidden">
+                                <div id="user-hannah-jingang-bar" class="bg-rose-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- 地藏經 完整部數 -->
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-zen-200 font-bold">《地藏經 完整部數》 (自動進位)</span>
+                                <span class="text-rose-300 font-bold" id="user-hannah-dizang_full-count">0 / 100 部</span>
+                            </div>
+                            <div class="w-full bg-zen-950 rounded-full h-2.5 border border-zen-800 overflow-hidden">
+                                <div id="user-hannah-dizang_full-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- 地藏經 上、中、下卷獨立細項 -->
+                        <div class="pt-2">
+                            <p class="text-xs font-semibold text-zen-300 mb-2 flex items-center">
+                                <i class="fa-solid fa-book-open mr-1.5 text-rose-300"></i>地藏經 各卷未進位數與進度：
+                            </p>
+                            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                                <div class="bg-zen-950/70 p-2.5 rounded-xl border border-zen-800/80">
+                                    <p class="text-[11px] text-zen-400">上卷</p>
+                                    <p class="text-base font-extrabold text-zen-100 mt-0.5" id="user-hannah-dizang_shang-count">0</p>
+                                    <p class="text-[9px] text-zen-500">遍</p>
+                                </div>
+                                <div class="bg-zen-950/70 p-2.5 rounded-xl border border-zen-800/80">
+                                    <p class="text-[11px] text-zen-400">中卷</p>
+                                    <p class="text-base font-extrabold text-zen-100 mt-0.5" id="user-hannah-dizang_zhong-count">0</p>
+                                    <p class="text-[9px] text-zen-500">遍</p>
+                                </div>
+                                <div class="bg-zen-950/70 p-2.5 rounded-xl border border-zen-800/80">
+                                    <p class="text-[11px] text-zen-400">下卷</p>
+                                    <p class="text-base font-extrabold text-zen-100 mt-0.5" id="user-hannah-dizang_xia-count">0</p>
+                                    <p class="text-[9px] text-zen-500">遍</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Goal Target Settings -->
+            <div class="bg-zen-900/50 rounded-2xl p-5 border border-zen-800 space-y-4">
+                <h4 class="text-xs font-bold text-zen-300 tracking-wider uppercase flex items-center">
+                    <i class="fa-solid fa-bullseye text-amberGold mr-2"></i>修持發願目標設定 (個人)
+                </h4>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+                    <div>
+                        <label class="block text-xs text-zen-400 mb-1">《金剛經》個人目標 (遍)</label>
+                        <input type="number" id="setting-target-jingang" onchange="updateTargetGoals()" class="w-full bg-zen-950 border border-zen-700 rounded-lg px-3 py-2 text-xs text-zen-100 focus:outline-none focus:border-amberGold" value="108">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-zen-400 mb-1">《地藏經》個人目標 (完整部數)</label>
+                        <input type="number" id="setting-target-dizang_full" onchange="updateTargetGoals()" class="w-full bg-zen-950 border border-zen-700 rounded-lg px-3 py-2 text-xs text-zen-100 focus:outline-none focus:border-amberGold" value="100">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Manual Input Modal -->
+    <div id="modal-manual-input" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-zen-900 border border-zen-700 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
+            <h3 class="text-base font-bold text-amberGold flex items-center justify-between">
+                <span>手動補錄次數</span>
+                <button onclick="closeManualInputModal()" class="text-zen-400 hover:text-zen-100"><i class="fa-solid fa-xmark"></i></button>
+            </h3>
+            
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-zen-400 mb-1">修持對象</label>
+                    <p class="font-bold text-zen-200" id="manual-user-text">Dicky</p>
+                </div>
+                <div>
+                    <label class="block text-zen-400 mb-1">經典</label>
+                    <p class="font-bold text-amberGold" id="manual-scripture-text">金剛經</p>
+                </div>
+                <div>
+                    <label class="block text-zen-400 mb-1">增加遍數 (+N)</label>
+                    <input type="number" id="manual-count-input" min="1" max="1000" value="1" class="w-full bg-zen-950 border border-zen-700 rounded-lg px-3 py-2 text-sm text-zen-100 focus:outline-none focus:border-amberGold">
+                </div>
+                <div>
+                    <label class="block text-zen-400 mb-1">備註 (可不填)</label>
+                    <input type="text" id="manual-note-input" placeholder="例如: 早課誦讀" class="w-full bg-zen-950 border border-zen-700 rounded-lg px-3 py-2 text-xs text-zen-100 focus:outline-none focus:border-amberGold">
                 </div>
             </div>
 
-            <!-- Hannah Breakdown -->
-            <div class="wood-card p-5 rounded-xl space-y-3">
-                <div class="flex justify-between items-center border-b border-stone-800 pb-2">
-                    <span class="font-bold gold-text text-sm"><i class="fa-solid fa-user-nurse mr-1.5"></i> Hannah 修持明細</span>
-                    <span id="hannah-full-ksitigarbha" class="text-xs bg-amber-900/60 text-amber-300 px-2 py-0.5 rounded border border-amber-700/50">地藏經: 0 部</span>
-                </div>
-                <div class="grid grid-cols-2 gap-2 text-xs text-stone-300">
-                    <div>金剛經：<span id="hannah-diamond" class="font-bold text-white">0</span> 遍</div>
-                    <div>地藏經(上)：<span id="hannah-k-top" class="font-bold text-white">0</span> 遍</div>
-                    <div>地藏經(中)：<span id="hannah-k-mid" class="font-bold text-white">0</span> 遍</div>
-                    <div>地藏經(下)：<span id="hannah-k-bot" class="font-bold text-white">0</span> 遍</div>
-                </div>
-            </div>
-
-            <!-- Log Stream -->
-            <div class="wood-card p-4 rounded-xl">
-                <h3 class="text-xs font-bold gold-text mb-3 flex justify-between items-center">
-                    <span><i class="fa-solid fa-clock-rotate-left mr-1"></i> 最新修持動態</span>
-                    <button onclick="fetchState()" class="text-[10px] text-stone-400 hover:text-stone-200">刷新</button>
-                </h3>
-                <div id="log-list" class="space-y-2 max-h-48 overflow-y-auto text-xs text-stone-400 divide-y divide-stone-800/60">
-                    <div class="pt-2 text-center text-stone-600">暫無修持紀錄</div>
-                </div>
+            <div class="flex space-x-2 pt-2">
+                <button onclick="closeManualInputModal()" class="flex-1 py-2 bg-zen-800 text-zen-300 rounded-lg text-xs font-bold hover:bg-zen-700">取消</button>
+                <button onclick="submitManualInput()" class="flex-1 py-2 bg-amberGold text-zen-950 rounded-lg text-xs font-bold hover:brightness-110">確認新增</button>
             </div>
         </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="bg-zen-950 border-t border-zen-900 py-3 text-center text-[11px] text-zen-500">
+        <p>Dicky & Hannah 共修 ‧ 淨心念經 ‧ 福慧雙修</p>
+    </footer>
 
     <script>
-        // State Machine
-        let state = {
-            currentUser: 'Dicky',
-            currentSutra: '金剛經',
-            counts: {
-                Dicky: { 金剛經: 0, 地藏經上: 0, 地藏經中: 0, 地藏經下: 0, 地藏經完整部數: 0 },
-                Hannah: { 金剛經: 0, 地藏經上: 0, 地藏經中: 0, 地藏經下: 0, 地藏經完整部數: 0 }
+        /* ==================== STATE MANAGEMENT ==================== */
+        const STORAGE_KEY = 'dicky_hannah_buddhist_counter_v3';
+        const API_BASE = ''; // Same origin API route for Vercel backend
+
+        let isOnlineMongoDB = false;
+        let overviewMode = 'split'; // 'split' | 'combined'
+
+        const SCRIPTURE_NAMES = {
+            jingang: '金剛經',
+            dizang_shang: '地藏菩薩本願經 上卷',
+            dizang_zhong: '地藏菩薩本願經 中卷',
+            dizang_xia: '地藏菩薩本願經 下卷',
+            dizang_full: '地藏經 完整部數'
+        };
+
+        let appState = {
+            currentUser: 'dicky', // 'dicky' | 'hannah'
+            activeScripture: 'jingang', // 'jingang' | 'dizang_shang' | 'dizang_zhong' | 'dizang_xia'
+            profiles: {
+                dicky: { name: 'Dicky', jingang: 0, dizang_shang: 0, dizang_zhong: 0, dizang_xia: 0, dizang_full: 0 },
+                hannah: { name: 'Hannah', jingang: 0, dizang_shang: 0, dizang_zhong: 0, dizang_xia: 0, dizang_full: 0 }
+            },
+            targets: {
+                jingang: 108,
+                dizang_full: 100
             },
             logs: []
         };
 
-        const sutraMap = {
-            '金剛經': '《金剛經》',
-            '地藏經上': '《地藏經》上卷',
-            '地藏經中': '《地藏經》中卷',
-            '地藏經下': '《地藏經》下卷'
+        /* ==================== INITIALIZATION & STORAGE ==================== */
+        window.onload = async function() {
+            await syncWithServerState();
+            renderUI();
         };
 
-        window.onload = function() {
-            fetchState();
-        };
-
-        async function fetchState() {
+        async function syncWithServerState() {
             try {
-                const res = await fetch('/api/state');
+                const res = await fetch(`${API_BASE}/api/state`, { cache: 'no-cache' });
                 if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.counts) {
-                        state.counts = data.counts;
-                        state.logs = data.logs || [];
-                        updateSyncBar(true, '🟢 MongoDB 雲端同步中');
+                    const json = await res.json();
+                    if (json.success && json.data) {
+                        isOnlineMongoDB = true;
+                        appState.profiles = json.data.profiles || appState.profiles;
+                        appState.targets = json.data.targets || appState.targets;
+                        appState.logs = json.data.logs || [];
+                        updateConnBadge(true);
+                        return;
                     }
-                } else {
-                    updateSyncBar(false, '🟡 離線模式 (即時保存於本地)');
-                    loadLocalState();
                 }
-            } catch (err) {
-                updateSyncBar(false, '🟡 離線模式 (即時保存於本地)');
-                loadLocalState();
+            } catch (e) {
+                console.warn("後端 API 未連線，切換至 LocalStorage 備用模式");
             }
-            renderUI();
+
+            isOnlineMongoDB = false;
+            updateConnBadge(false);
+            loadStateFromStorage();
+            processAutoCarryOver('dicky');
+            processAutoCarryOver('hannah');
         }
 
-        function loadLocalState() {
-            const saved = localStorage.getItem('buddhist_counter_state');
+        function updateConnBadge(online) {
+            const badge = document.getElementById('db-connection-badge');
+            if (!badge) return;
+            if (online) {
+                badge.className = "text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-700/60 font-normal shadow-sm";
+                badge.innerHTML = `<i class="fa-solid fa-database mr-1"></i>MongoDB 雲端同步中`;
+            } else {
+                badge.className = "text-[10px] px-2.5 py-0.5 rounded-full bg-amber-950/60 text-amber-300 border border-amber-700/50 font-normal";
+                badge.innerHTML = `<i class="fa-solid fa-hard-drive mr-1"></i>本地備用模式`;
+            }
+        }
+
+        function saveStateToStorage() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        }
+
+        function loadStateFromStorage() {
+            const saved = localStorage.getItem(STORAGE_KEY);
             if (saved) {
-                try { state.counts = JSON.parse(saved); } catch(e){}
+                try {
+                    const parsed = JSON.parse(saved);
+                    appState = { ...appState, ...parsed };
+                    if (!appState.targets.dizang_full) appState.targets.dizang_full = 100;
+                } catch (e) {
+                    console.error("Failed to parse local storage", e);
+                }
             }
         }
 
-        function saveLocalState() {
-            localStorage.setItem('buddhist_counter_state', JSON.stringify(state.counts));
-        }
+        /* ==================== AUTO CARRY-OVER LOGIC ==================== */
+        function processAutoCarryOver(user) {
+            const profile = appState.profiles[user];
+            if (!profile) return;
 
-        function updateSyncBar(isOnline, text) {
-            document.getElementById('sync-status').innerText = text;
-            document.getElementById('sync-dot').className = `w-2 h-2 rounded-full inline-block ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`;
-        }
+            let carryCount = 0;
+            while (
+                (profile.dizang_shang || 0) >= 1 &&
+                (profile.dizang_zhong || 0) >= 1 &&
+                (profile.dizang_xia || 0) >= 1
+            ) {
+                profile.dizang_shang -= 1;
+                profile.dizang_zhong -= 1;
+                profile.dizang_xia -= 1;
+                profile.dizang_full = (profile.dizang_full || 0) + 1;
+                carryCount++;
+            }
 
-        function switchTab(tab) {
-            document.getElementById('view-counter').classList.toggle('hidden', tab !== 'counter');
-            document.getElementById('view-stats').classList.toggle('hidden', tab !== 'stats');
-            document.getElementById('tab-btn-counter').className = `flex-1 py-3 font-semibold ${tab === 'counter' ? 'tab-active' : 'text-stone-500'}`;
-            document.getElementById('tab-btn-stats').className = `flex-1 py-3 font-semibold ${tab === 'stats' ? 'tab-active' : 'text-stone-500'}`;
-        }
-
-        function selectUser(user) {
-            state.currentUser = user;
-            ['Dicky', 'Hannah'].forEach(u => {
-                const btn = document.getElementById(`user-btn-${u}`);
-                if (u === user) {
-                    btn.className = "flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all bg-amber-900/40 text-amber-200 border border-amber-700/50";
-                } else {
-                    btn.className = "flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all text-stone-400 hover:text-stone-200";
-                }
-            });
-            renderUI();
-        }
-
-        function setScripture(sutra) {
-            state.currentSutra = sutra;
-            ['金剛經', '地藏經上', '地藏經中', '地藏經下'].forEach(s => {
-                const btn = document.getElementById(`sutra-btn-${s}`);
-                if (s === sutra) {
-                    btn.className = "py-2 px-3 rounded-lg text-xs font-semibold border border-amber-600/40 bg-amber-900/30 gold-text";
-                } else {
-                    btn.className = "py-2 px-3 rounded-lg text-xs font-semibold border border-stone-800 bg-stone-900/60 text-stone-400";
-                }
-            });
-            renderUI();
-        }
-
-        async function addCount(amount) {
-            const user = state.currentUser;
-            const sutra = state.currentSutra;
-
-            try {
-                const res = await fetch('/api/increment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user, sutra, amount })
+            if (carryCount > 0) {
+                appState.logs.unshift({
+                    id: Date.now(),
+                    userId: user,
+                    userName: profile.name,
+                    scriptureId: 'dizang_full',
+                    scriptureName: '地藏經 完整部數',
+                    count: carryCount,
+                    note: '🎉 上中下卷集齊，自動進位 +1 部完整地藏經！',
+                    timestamp: new Date().toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
                 });
-
-                if (res.ok) {
-                    const data = await res.json();
-                    state.counts = data.counts;
-                    state.logs = data.logs || [];
-                } else {
-                    fallbackLocalIncrement(user, sutra, amount);
-                }
-            } catch (err) {
-                fallbackLocalIncrement(user, sutra, amount);
             }
+        }
+
+        /* ==================== UI RENDERER FUNCTION ==================== */
+        function renderUI() {
+            const u = appState.currentUser;
+            const sc = appState.activeScripture;
+            const userProfile = appState.profiles[u] || { name: u, jingang: 0, dizang_shang: 0, dizang_zhong: 0, dizang_xia: 0, dizang_full: 0 };
+
+            // 1. Highlight User Selector
+            const dickyBtn = document.getElementById('user-dicky-btn');
+            const hannahBtn = document.getElementById('user-hannah-btn');
+            if (u === 'dicky') {
+                dickyBtn.className = "px-3.5 py-1 rounded-full text-xs font-bold bg-amberGold text-zen-950 shadow";
+                hannahBtn.className = "px-3.5 py-1 rounded-full text-xs font-semibold text-zen-300 hover:text-zen-100";
+            } else {
+                hannahBtn.className = "px-3.5 py-1 rounded-full text-xs font-bold bg-amberGold text-zen-950 shadow";
+                dickyBtn.className = "px-3.5 py-1 rounded-full text-xs font-semibold text-zen-300 hover:text-zen-100";
+            }
+
+            // 2. Active User Name Display
+            const activeUserDisp = document.getElementById('active-user-display-name');
+            if (activeUserDisp) activeUserDisp.innerText = userProfile.name;
+
+            // Update Active User Personal Overview in Tab 1
+            const overviewTitle = document.getElementById('active-user-overview-title');
+            if (overviewTitle) overviewTitle.innerText = `${userProfile.name} 的`;
+
+            document.getElementById('stat-user-jingang').innerHTML = `${userProfile.jingang || 0} <span class="text-xs text-zen-300 font-normal">遍</span>`;
+            document.getElementById('stat-user-dizang-shang').innerHTML = `${userProfile.dizang_shang || 0} <span class="text-xs text-zen-300 font-normal">遍</span>`;
+            document.getElementById('stat-user-dizang-zhong').innerHTML = `${userProfile.dizang_zhong || 0} <span class="text-xs text-zen-300 font-normal">遍</span>`;
+            document.getElementById('stat-user-dizang-xia').innerHTML = `${userProfile.dizang_xia || 0} <span class="text-xs text-zen-300 font-normal">遍</span>`;
+            document.getElementById('stat-user-dizang-full').innerHTML = `${userProfile.dizang_full || 0} <span class="text-xs text-zen-300 font-normal">部</span>`;
+
+            // 3. Highlight Scripture Selector
+            const scriptures = ['jingang', 'dizang_shang', 'dizang_zhong', 'dizang_xia'];
+            scriptures.forEach(s => {
+                const btn = document.getElementById(`scripture-btn-${s}`);
+                if (btn) {
+                    if (s === sc) {
+                        btn.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition-all border border-amberGold bg-zen-700 text-amberGold shadow";
+                    } else {
+                        btn.className = "py-2.5 px-3 rounded-xl text-xs font-bold transition-all border border-zen-800 text-zen-400 hover:text-zen-200 bg-zen-950/40";
+                    }
+                }
+            });
+
+            // 4. Current Scripture Counter Display
+            const curCountEl = document.getElementById('current-scripture-count');
+            const curLabelEl = document.getElementById('current-scripture-label');
+            if (curCountEl) curCountEl.innerText = userProfile[sc] || 0;
+            if (curLabelEl) curLabelEl.innerText = `《${SCRIPTURE_NAMES[sc]}》【${userProfile.name}】目前累計遍數`;
+
+            // 5. Individual & Joint Numbers (Tab 2)
+            const dickyProf = appState.profiles.dicky || {};
+            const hannahProf = appState.profiles.hannah || {};
+
+            // Combined Totals for Tab 2
+            const sumJingang = (dickyProf.jingang || 0) + (hannahProf.jingang || 0);
+            const sumShang = (dickyProf.dizang_shang || 0) + (hannahProf.dizang_shang || 0);
+            const sumZhong = (dickyProf.dizang_zhong || 0) + (hannahProf.dizang_zhong || 0);
+            const sumXia = (dickyProf.dizang_xia || 0) + (hannahProf.dizang_xia || 0);
+            const sumFull = (dickyProf.dizang_full || 0) + (hannahProf.dizang_full || 0);
+
+            // Tab 2 Joint Total Summary
+            document.getElementById('joint-total-jingang').innerText = sumJingang;
+            document.getElementById('joint-total-dizang-shang').innerText = sumShang;
+            document.getElementById('joint-total-dizang-zhong').innerText = sumZhong;
+            document.getElementById('joint-total-dizang-xia').innerText = sumXia;
+            document.getElementById('joint-total-dizang-full').innerText = sumFull;
+
+            // 6. Individual Detailed Breakdown Cards (Tab 2)
+            const targetJingang = appState.targets.jingang || 108;
+            const targetDizangFull = appState.targets.dizang_full || 100;
+
+            ['dicky', 'hannah'].forEach(userKey => {
+                const p = appState.profiles[userKey] || { jingang: 0, dizang_shang: 0, dizang_zhong: 0, dizang_xia: 0, dizang_full: 0 };
+                
+                // Badge
+                const badge = document.getElementById(`user-${userKey}-dizang-full-badge`);
+                if (badge) badge.innerText = `✨ 已完成 ${p.dizang_full || 0} 部地藏經`;
+
+                // Jingang progress
+                const jingangCount = document.getElementById(`user-${userKey}-jingang-count`);
+                const jingangBar = document.getElementById(`user-${userKey}-jingang-bar`);
+                if (jingangCount) jingangCount.innerText = `${p.jingang || 0} / ${targetJingang} 遍`;
+                if (jingangBar) jingangBar.style.width = `${Math.min(100, Math.round(((p.jingang || 0) / targetJingang) * 100))}%`;
+
+                // Dizang Full progress
+                const dizangFullCount = document.getElementById(`user-${userKey}-dizang_full-count`);
+                const dizangFullBar = document.getElementById(`user-${userKey}-dizang_full-bar`);
+                if (dizangFullCount) dizangFullCount.innerText = `${p.dizang_full || 0} / ${targetDizangFull} 部`;
+                if (dizangFullBar) dizangFullBar.style.width = `${Math.min(100, Math.round(((p.dizang_full || 0) / targetDizangFull) * 100))}%`;
+
+                // Sub-volumes breakdown
+                document.getElementById(`user-${userKey}-dizang_shang-count`).innerText = p.dizang_shang || 0;
+                document.getElementById(`user-${userKey}-dizang_zhong-count`).innerText = p.dizang_zhong || 0;
+                document.getElementById(`user-${userKey}-dizang_xia-count`).innerText = p.dizang_xia || 0;
+            });
+
+            // 7. Render Filtered Recent Logs
+            const filterUser = document.getElementById('log-filter-user')?.value || 'all';
+            const logsContainer = document.getElementById('recent-logs-list');
+            if (logsContainer) {
+                let filteredLogs = appState.logs || [];
+                if (filterUser !== 'all') {
+                    filteredLogs = filteredLogs.filter(l => l.userId === filterUser);
+                }
+
+                if (filteredLogs.length === 0) {
+                    logsContainer.innerHTML = `<p class="text-xs text-zen-500 py-4 text-center">尚無符合條件的修持紀錄！</p>`;
+                } else {
+                    logsContainer.innerHTML = filteredLogs.map(log => `
+                        <div class="flex items-center justify-between bg-zen-950/70 p-2.5 rounded-xl border border-zen-800 text-xs">
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2 py-0.5 rounded-md ${log.userId === 'dicky' ? 'bg-amber-900/60 text-amber-200' : 'bg-rose-900/60 text-rose-200'} font-bold text-[11px]">
+                                    ${log.userName || (log.userId === 'dicky' ? 'Dicky' : 'Hannah')}
+                                </span>
+                                <span class="font-bold text-zen-200">${log.scriptureName}</span>
+                                <span class="text-amberGold font-extrabold">+${log.count}</span>
+                                ${log.note ? `<span class="text-zen-400 italic text-[11px]">(${log.note})</span>` : ''}
+                            </div>
+                            <span class="text-[10px] text-zen-500">${log.timestamp || ''}</span>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // 8. Target Input Elements
+            document.getElementById('setting-target-jingang').value = targetJingang;
+            document.getElementById('setting-target-dizang_full').value = targetDizangFull;
+        }
+
+        /* ==================== USER & SCRIPTURE SWITCHING ==================== */
+        function switchUser(userId) {
+            appState.currentUser = userId;
+            saveStateToStorage();
             renderUI();
         }
 
-        function fallbackLocalIncrement(user, sutra, amount) {
-            state.counts[user][sutra] = (state.counts[user][sutra] || 0) + amount;
+        function setScripture(scriptureId) {
+            appState.activeScripture = scriptureId;
+            saveStateToStorage();
+            renderUI();
+        }
+
+        function setOverviewMode(mode) {
+            overviewMode = mode;
+            const splitBtn = document.getElementById('view-mode-split');
+            const combinedBtn = document.getElementById('view-mode-combined');
+            const splitBox = document.getElementById('overview-split-container');
+            const combinedBox = document.getElementById('overview-combined-container');
+
+            if (mode === 'split') {
+                splitBtn.className = "px-2.5 py-1 rounded-md bg-zen-700 text-amberGold font-bold";
+                combinedBtn.className = "px-2.5 py-1 rounded-md text-zen-400 hover:text-zen-200";
+                splitBox.classList.remove('hidden');
+                combinedBox.classList.add('hidden');
+            } else {
+                combinedBtn.className = "px-2.5 py-1 rounded-md bg-zen-700 text-amberGold font-bold";
+                splitBtn.className = "px-2.5 py-1 rounded-md text-zen-400 hover:text-zen-200";
+                combinedBox.classList.remove('hidden');
+                splitBox.classList.add('hidden');
+            }
+        }
+
+        /* ==================== ANIMATIONS ==================== */
+        function createFloatingMeritText(text) {
+            const anchor = document.getElementById('float-anchor');
+            if (!anchor) return;
+
+            const elem = document.createElement('div');
+            elem.className = 'merit-float text-sm md:text-base';
+            elem.innerText = text;
             
-            // Check individual Ksitigarbha auto carry for the current user
-            const uData = state.counts[user];
-            if (uData.地藏經上 >= 1 && uData.地藏經中 >= 1 && uData.地藏經下 >= 1) {
-                const min = Math.min(uData.地藏經上, uData.地藏經中, uData.地藏經下);
-                uData.地藏經上 -= min;
-                uData.地藏經中 -= min;
-                uData.地藏經下 -= min;
-                uData.地藏經完整部數 = (uData.地藏經完整部數 || 0) + min;
-            }
-            saveLocalState();
+            const offsetX = (Math.random() - 0.5) * 40;
+            elem.style.left = `${offsetX}px`;
+
+            anchor.appendChild(elem);
+            setTimeout(() => elem.remove(), 1200);
         }
 
-        function promptManualEntry() {
-            const input = prompt(`請輸入 ${state.currentUser} 補錄《${state.currentSutra}》的遍數：`, '1');
-            const num = parseInt(input, 10);
-            if (!isNaN(num) && num > 0) {
-                addCount(num);
+        /* ==================== CORE ACTIONS ==================== */
+        async function tapWoodenFish(amount = 1) {
+            const wf = document.getElementById('wooden-fish');
+            if (wf) {
+                wf.classList.remove('wooden-fish-tap');
+                void wf.offsetWidth;
+                wf.classList.add('wooden-fish-tap');
+            }
+
+            createFloatingMeritText(`+${amount} 功德`);
+
+            const user = appState.currentUser;
+            const sc = appState.activeScripture;
+
+            if (isOnlineMongoDB) {
+                try {
+                    const res = await fetch(`${API_BASE}/api/tap`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: user, scriptureId: sc, count: amount })
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json.success && json.data) {
+                            appState.profiles = json.data.profiles;
+                            appState.targets = json.data.targets;
+                            appState.logs = json.data.logs;
+                            renderUI();
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Tap API failed, falling back to local state", e);
+                }
+            }
+
+            // Local Fallback
+            appState.profiles[user][sc] = (appState.profiles[user][sc] || 0) + amount;
+
+            const scriptureName = SCRIPTURE_NAMES[sc];
+            const userName = appState.profiles[user].name;
+            
+            appState.logs.unshift({
+                id: Date.now(),
+                userId: user,
+                userName: userName,
+                scriptureId: sc,
+                scriptureName: scriptureName,
+                count: amount,
+                timestamp: new Date().toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+            });
+
+            processAutoCarryOver(user);
+            if (appState.logs.length > 50) appState.logs.pop();
+
+            saveStateToStorage();
+            renderUI();
+        }
+
+        async function submitManualInput() {
+            const count = parseInt(document.getElementById('manual-count-input').value) || 1;
+            const note = document.getElementById('manual-note-input').value.trim();
+
+            if (count <= 0) return;
+
+            const user = appState.currentUser;
+            const sc = appState.activeScripture;
+
+            if (isOnlineMongoDB) {
+                try {
+                    const res = await fetch(`${API_BASE}/api/manual`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: user, scriptureId: sc, count, note })
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        if (json.success && json.data) {
+                            appState.profiles = json.data.profiles;
+                            appState.targets = json.data.targets;
+                            appState.logs = json.data.logs;
+                            renderUI();
+                            closeManualInputModal();
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Manual input API failed", e);
+                }
+            }
+
+            // Local Fallback
+            appState.profiles[user][sc] = (appState.profiles[user][sc] || 0) + count;
+            const scriptureName = SCRIPTURE_NAMES[sc];
+            const userName = appState.profiles[user].name;
+
+            appState.logs.unshift({
+                id: Date.now(),
+                userId: user,
+                userName: userName,
+                scriptureId: sc,
+                scriptureName: scriptureName,
+                count: count,
+                note: note || '手動補錄',
+                timestamp: new Date().toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+            });
+
+            processAutoCarryOver(user);
+            saveStateToStorage();
+            renderUI();
+            closeManualInputModal();
+        }
+
+        async function updateTargetGoals() {
+            const jingang = parseInt(document.getElementById('setting-target-jingang').value) || 108;
+            const dizang_full = parseInt(document.getElementById('setting-target-dizang_full').value) || 100;
+
+            appState.targets.jingang = jingang;
+            appState.targets.dizang_full = dizang_full;
+
+            if (isOnlineMongoDB) {
+                try {
+                    await fetch(`${API_BASE}/api/targets`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ jingang, dizang_full })
+                    });
+                } catch (e) {
+                    console.error("Failed to sync targets with API", e);
+                }
+            }
+
+            saveStateToStorage();
+            renderUI();
+        }
+
+        async function clearLogs() {
+            if (confirm("確定要清空修持紀錄嗎？（注意：這不會刪除累積的總次數）")) {
+                if (isOnlineMongoDB) {
+                    try {
+                        const res = await fetch(`${API_BASE}/api/logs`, { method: 'DELETE' });
+                        if (res.ok) {
+                            const json = await res.json();
+                            if (json.success && json.data) {
+                                appState.logs = json.data.logs;
+                                renderUI();
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Clear logs API failed", e);
+                    }
+                }
+
+                appState.logs = [];
+                saveStateToStorage();
+                renderUI();
             }
         }
 
-        function renderUI() {
-            const user = state.currentUser;
-            const sutra = state.currentSutra;
+        /* ==================== TAB NAVIGATION ==================== */
+        function switchTab(tabName) {
+            const tabs = ['counter', 'stats'];
+            tabs.forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                const btn = document.getElementById(`tab-btn-${t}`);
+                if (t === tabName) {
+                    el.classList.remove('hidden');
+                    btn.className = "flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center space-x-2 bg-zen-700 text-amberGold shadow";
+                } else {
+                    el.classList.add('hidden');
+                    btn.className = "flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center space-x-2 text-zen-300 hover:text-zen-100";
+                }
+            });
+        }
 
-            document.getElementById('display-user').innerText = user;
-            document.getElementById('display-sutra').innerText = sutraMap[sutra];
-            document.getElementById('count-number').innerText = state.counts[user][sutra] || 0;
+        /* ==================== MODALS ==================== */
+        function openManualInputModal() {
+            const userText = appState.profiles[appState.currentUser].name;
+            const scriptureText = SCRIPTURE_NAMES[appState.activeScripture];
 
-            // Ksitigarbha individual notice
-            const notice = document.getElementById('ksitigarbha-notice');
-            const kCount = state.counts[user].地藏經完整部數 || 0;
-            document.getElementById('ksitigarbha-user-name').innerText = user;
-            document.getElementById('ksitigarbha-full-count').innerText = kCount;
-            notice.classList.toggle('hidden', !sutra.startsWith('地藏經'));
+            document.getElementById('manual-user-text').innerText = userText;
+            document.getElementById('manual-scripture-text').innerText = scriptureText;
+            document.getElementById('manual-count-input').value = 1;
+            document.getElementById('manual-note-input').value = '';
 
-            // Totals
-            const totalDiamond = (state.counts.Dicky.金剛經 || 0) + (state.counts.Hannah.金剛經 || 0);
-            const totalKsitigarbha = (state.counts.Dicky.地藏經完整部數 || 0) + (state.counts.Hannah.地藏經完整部數 || 0);
-            document.getElementById('total-diamond').innerHTML = `${totalDiamond} <span class="text-xs font-normal">遍</span>`;
-            document.getElementById('total-ksitigarbha').innerHTML = `${totalKsitigarbha} <span class="text-xs font-normal">部</span>`;
+            document.getElementById('modal-manual-input').classList.remove('hidden');
+        }
 
-            // Dicky breakdown
-            document.getElementById('dicky-diamond').innerText = state.counts.Dicky.金剛經 || 0;
-            document.getElementById('dicky-k-top').innerText = state.counts.Dicky.地藏經上 || 0;
-            document.getElementById('dicky-k-mid').innerText = state.counts.Dicky.地藏經中 || 0;
-            document.getElementById('dicky-k-bot').innerText = state.counts.Dicky.地藏經下 || 0;
-            document.getElementById('dicky-full-ksitigarbha').innerText = `地藏經: ${state.counts.Dicky.地藏經完整部數 || 0} 部`;
-
-            // Hannah breakdown
-            document.getElementById('hannah-diamond').innerText = state.counts.Hannah.金剛經 || 0;
-            document.getElementById('hannah-k-top').innerText = state.counts.Hannah.地藏經上 || 0;
-            document.getElementById('hannah-k-mid').innerText = state.counts.Hannah.地藏經中 || 0;
-            document.getElementById('hannah-k-bot').innerText = state.counts.Hannah.地藏經下 || 0;
-            document.getElementById('hannah-full-ksitigarbha').innerText = `地藏經: ${state.counts.Hannah.地藏經完整部數 || 0} 部`;
-
-            // Logs
-            const logContainer = document.getElementById('log-list');
-            if (state.logs && state.logs.length > 0) {
-                logContainer.innerHTML = state.logs.map(log => `
-                    <div class="pt-2 flex justify-between items-center">
-                        <span><strong class="text-amber-200">${log.user}</strong> 修持 ${sutraMap[log.sutra] || log.sutra} +${log.amount}</span>
-                        <span class="text-[10px] text-stone-500">${new Date(log.timestamp).toLocaleTimeString()}</span>
-                    </div>
-                `).join('');
-            }
+        function closeManualInputModal() {
+            document.getElementById('modal-manual-input').classList.add('hidden');
         }
     </script>
 </body>
