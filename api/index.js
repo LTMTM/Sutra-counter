@@ -9,7 +9,6 @@ app.use(express.json());
 
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://leungtm13_db_user:s9ohdoPosz4xc4GM@cluster0.q0ca3wp.mongodb.net/buddhist_counter?retryWrites=true&w=majority";
 
-// Connection caching for Vercel Serverless Function
 let cachedDb = null;
 
 async function connectToDatabase() {
@@ -26,18 +25,6 @@ async function connectToDatabase() {
     return cachedDb;
 }
 
-// Middleware to ensure DB connection
-app.use(async (req, res, next) => {
-    try {
-        await connectToDatabase();
-        next();
-    } catch (error) {
-        console.error('MongoDB Connection Error:', error);
-        res.status(500).json({ success: false, error: 'Database connection failed: ' + error.message });
-    }
-});
-
-// Schema Definitions
 const UserSchema = new mongoose.Schema({
     userId: { type: String, required: true, unique: true },
     name: { type: String, required: true },
@@ -152,8 +139,23 @@ async function getFullAppState() {
     return { profiles, targets, logs: formattedLogs };
 }
 
-// API Routes
-app.get('/api/state', async (req, res) => {
+app.use(async (req, res, next) => {
+    // Handle icon requests directly to avoid 404 noise
+    if (req.path === '/favicon.ico' || req.path === '/favicon.png') {
+        return res.status(204).end();
+    }
+    
+    try {
+        await connectToDatabase();
+        next();
+    } catch (error) {
+        console.error('MongoDB Connection Error:', error);
+        res.status(500).json({ success: false, error: 'Database connection failed: ' + error.message });
+    }
+});
+
+// Compatible handlers for both /api/* and /* routes
+app.get(['/api/state', '/state'], async (req, res) => {
     try {
         const state = await getFullAppState();
         res.json({ success: true, data: state });
@@ -162,7 +164,7 @@ app.get('/api/state', async (req, res) => {
     }
 });
 
-app.post('/api/tap', async (req, res) => {
+app.post(['/api/tap', '/tap'], async (req, res) => {
     try {
         const { userId, scriptureId, count = 1 } = req.body;
         
@@ -194,7 +196,7 @@ app.post('/api/tap', async (req, res) => {
     }
 });
 
-app.post('/api/manual', async (req, res) => {
+app.post(['/api/manual', '/manual'], async (req, res) => {
     try {
         const { userId, scriptureId, count, note } = req.body;
         
@@ -228,7 +230,7 @@ app.post('/api/manual', async (req, res) => {
     }
 });
 
-app.post('/api/targets', async (req, res) => {
+app.post(['/api/targets', '/targets'], async (req, res) => {
     try {
         const { jingang, dizang_full } = req.body;
         
@@ -246,7 +248,7 @@ app.post('/api/targets', async (req, res) => {
     }
 });
 
-app.delete('/api/logs', async (req, res) => {
+app.delete(['/api/logs', '/logs'], async (req, res) => {
     try {
         await RecitationLog.deleteMany({});
         const updatedState = await getFullAppState();
