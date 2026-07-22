@@ -141,9 +141,9 @@
                     <span class="text-[10px] text-zen-400">（切換右上角名字可更換修持者）</span>
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                    <div class="bg-zen-950/80 rounded-xl p-2.5 border border-zen-800 text-center">
-                        <p class="text-[11px] text-zen-400">《金剛經》</p>
-                        <p class="text-lg font-bold text-amberGold mt-0.5" id="stat-user-jingang">0 <span class="text-xs text-zen-300 font-normal">遍</span></p>
+                    <div class="bg-amberGold/10 border border-amberGold/40 rounded-xl p-2.5 text-center flex flex-col justify-center">
+                        <p class="text-[11px] text-amberGold font-bold"><i class="fa-solid fa-book-journal-whills mr-1"></i>《金剛經》</p>
+                        <p class="text-lg font-extrabold text-amberGold mt-0.5" id="stat-user-jingang">0 <span class="text-xs text-zen-300 font-normal">遍</span></p>
                     </div>
                     <div class="bg-zen-950/80 rounded-xl p-2.5 border border-zen-800 text-center">
                         <p class="text-[11px] text-zen-400">地藏經《上卷》</p>
@@ -265,10 +265,10 @@
                 </div>
 
                 <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
-                    <div class="bg-zen-950/60 p-3 rounded-xl border border-zen-800">
-                        <p class="text-xs text-zen-400">《金剛經》</p>
+                    <div class="bg-amberGold/15 p-3 rounded-xl border border-amberGold/40">
+                        <p class="text-xs text-amberGold font-bold"><i class="fa-solid fa-book-journal-whills mr-1"></i>✨ 《金剛經》</p>
                         <p class="text-2xl font-extrabold text-amberGold mt-1" id="joint-total-jingang">0</p>
-                        <p class="text-[10px] text-zen-400">遍 (雙人總和)</p>
+                        <p class="text-[10px] text-zen-300">遍 (雙人總和)</p>
                     </div>
                     <div class="bg-zen-950/60 p-3 rounded-xl border border-zen-800">
                         <p class="text-xs text-zen-400">《地藏經 上卷》</p>
@@ -286,7 +286,7 @@
                         <p class="text-[10px] text-zen-400">遍 (雙人總和)</p>
                     </div>
                     <div class="bg-amberGold/15 p-3 rounded-xl border border-amberGold/40 col-span-2 sm:col-span-1">
-                        <p class="text-xs text-amberGold font-bold">✨ 地藏經 (總部數)</p>
+                        <p class="text-xs text-amberGold font-bold"><i class="fa-solid fa-book mr-1"></i>✨ 地藏經 (總部數)</p>
                         <p class="text-2xl font-extrabold text-amberGold mt-1" id="joint-total-dizang-full">0</p>
                         <p class="text-[10px] text-zen-300">部 (完整一部)</p>
                     </div>
@@ -302,7 +302,10 @@
                         <span class="font-bold text-amberGold flex items-center text-base">
                             <span class="mr-2 text-lg">👦</span> <span id="card-name-dicky">Dicky</span> 的獨立修持進度
                         </span>
-                        <span class="text-xs font-bold text-amberGold bg-amberGold/10 px-2.5 py-1 rounded-full border border-amberGold/30" id="user-dicky-dizang-full-badge">✨ 已完成 0 部地藏經</span>
+                        <div class="flex flex-wrap gap-1 justify-end">
+                            <span class="text-xs font-bold text-amberGold bg-amberGold/10 px-2.5 py-1 rounded-full border border-amberGold/30" id="user-dicky-jingang-badge">📿 金剛經 0 遍</span>
+                            <span class="text-xs font-bold text-amberGold bg-amberGold/10 px-2.5 py-1 rounded-full border border-amberGold/30" id="user-dicky-dizang-full-badge">✨ 地藏經 0 部</span>
+                        </div>
                     </div>
 
                     <div class="space-y-4">
@@ -360,7 +363,10 @@
                         <span class="font-bold text-rose-300 flex items-center text-base">
                             <span class="mr-2 text-lg">👧</span> <span id="card-name-hannah">Hannah</span> 的獨立修持進度
                         </span>
-                        <span class="text-xs font-bold text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/30" id="user-hannah-dizang-full-badge">✨ 已完成 0 部地藏經</span>
+                        <div class="flex flex-wrap gap-1 justify-end">
+                            <span class="text-xs font-bold text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/30" id="user-hannah-jingang-badge">📿 金剛經 0 遍</span>
+                            <span class="text-xs font-bold text-rose-300 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/30" id="user-hannah-dizang-full-badge">✨ 地藏經 0 部</span>
+                        </div>
                     </div>
 
                     <div class="space-y-4">
@@ -671,9 +677,12 @@
             ['dicky', 'hannah'].forEach(userKey => {
                 const p = appState.profiles[userKey] || { jingang: 0, dizang_shang: 0, dizang_zhong: 0, dizang_xia: 0, dizang_full: 0 };
                 
-                // Badge
+                // Badges
+                const jingangBadge = document.getElementById(`user-${userKey}-jingang-badge`);
+                if (jingangBadge) jingangBadge.innerText = `📿 金剛經 ${p.jingang || 0} 遍`;
+
                 const badge = document.getElementById(`user-${userKey}-dizang-full-badge`);
-                if (badge) badge.innerText = `✨ 已完成 ${p.dizang_full || 0} 部地藏經`;
+                if (badge) badge.innerText = `✨ 地藏經 ${p.dizang_full || 0} 部`;
 
                 // Jingang progress
                 const jingangCount = document.getElementById(`user-${userKey}-jingang-count`);
