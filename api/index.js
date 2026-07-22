@@ -140,7 +140,6 @@ async function getFullAppState() {
 }
 
 app.use(async (req, res, next) => {
-    // Handle icon requests directly to avoid 404 noise
     if (req.path === '/favicon.ico' || req.path === '/favicon.png') {
         return res.status(204).end();
     }
@@ -154,7 +153,6 @@ app.use(async (req, res, next) => {
     }
 });
 
-// Compatible handlers for both /api/* and /* routes
 app.get(['/api/state', '/state'], async (req, res) => {
     try {
         const state = await getFullAppState();
