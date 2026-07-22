@@ -1,7 +1,7 @@
 {
   "name": "buddhist-counter",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "api/index.js",
   "scripts": {
     "start": "node server.js"
   },
