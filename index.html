@@ -330,30 +330,6 @@
                                 <div id="user-dicky-dizang_full-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
                             </div>
                         </div>
-
-                        <!-- 地藏經 上、中、下卷獨立細項 -->
-                        <div class="pt-2">
-                            <p class="text-xs font-semibold text-zen-300 mb-2 flex items-center">
-                                <i class="fa-solid fa-book-open mr-1.5 text-amberGold"></i>地藏經 各卷未進位數與進度：
-                            </p>
-                            <div class="grid grid-cols-3 gap-2 text-center text-xs">
-                                <div class="bg-zen-950/70 p-2.5 rounded-xl border border-zen-800/80">
-                                    <p class="text-[11px] text-zen-400">上卷</p>
-                                    <p class="text-base font-extrabold text-zen-100 mt-0.5" id="user-dicky-dizang_shang-count">0</p>
-                                    <p class="text-[9px] text-zen-500">遍</p>
-                                </div>
-                                <div class="bg-zen-950/70 p-2.5 rounded-xl border border-zen-800/80">
-                                    <p class="text-[11px] text-zen-400">中卷</p>
-                                    <p class="text-base font-extrabold text-zen-100 mt-0.5" id="user-dicky-dizang_zhong-count">0</p>
-                                    <p class="text-[9px] text-zen-500">遍</p>
-                                </div>
-                                <div class="bg-zen-950/70 p-2.5 rounded-xl border border-zen-800/80">
-                                    <p class="text-[11px] text-zen-400">下卷</p>
-                                    <p class="text-base font-extrabold text-zen-100 mt-0.5" id="user-dicky-dizang_xia-count">0</p>
-                                    <p class="text-[9px] text-zen-500">遍</p>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -389,30 +365,6 @@
                             </div>
                             <div class="w-full bg-zen-950 rounded-full h-2.5 border border-zen-800 overflow-hidden">
                                 <div id="user-hannah-dizang_full-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
-                            </div>
-                        </div>
-
-                        <!-- 地藏經 上、中、下卷獨立細項 -->
-                        <div class="pt-2">
-                            <p class="text-xs font-semibold text-zen-300 mb-2 flex items-center">
-                                <i class="fa-solid fa-book-open mr-1.5 text-rose-300"></i>地藏經 各卷未進位數與進度：
-                            </p>
-                            <div class="grid grid-cols-3 gap-2 text-center text-xs">
-                                <div class="bg-zen-950/70 p-2.5 rounded-xl border border-zen-800/80">
-                                    <p class="text-[11px] text-zen-400">上卷</p>
-                                    <p class="text-base font-extrabold text-zen-100 mt-0.5" id="user-hannah-dizang_shang-count">0</p>
-                                    <p class="text-[9px] text-zen-500">遍</p>
-                                </div>
-                                <div class="bg-zen-950/70 p-2.5 rounded-xl border border-zen-800/80">
-                                    <p class="text-[11px] text-zen-400">中卷</p>
-                                    <p class="text-base font-extrabold text-zen-100 mt-0.5" id="user-hannah-dizang_zhong-count">0</p>
-                                    <p class="text-[9px] text-zen-500">遍</p>
-                                </div>
-                                <div class="bg-zen-950/70 p-2.5 rounded-xl border border-zen-800/80">
-                                    <p class="text-[11px] text-zen-400">下卷</p>
-                                    <p class="text-base font-extrabold text-zen-100 mt-0.5" id="user-hannah-dizang_xia-count">0</p>
-                                    <p class="text-[9px] text-zen-500">遍</p>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -696,10 +648,13 @@
                 if (dizangFullCount) dizangFullCount.innerText = `${p.dizang_full || 0} / ${targetDizangFull} 部`;
                 if (dizangFullBar) dizangFullBar.style.width = `${Math.min(100, Math.round(((p.dizang_full || 0) / targetDizangFull) * 100))}%`;
 
-                // Sub-volumes breakdown
-                document.getElementById(`user-${userKey}-dizang_shang-count`).innerText = p.dizang_shang || 0;
-                document.getElementById(`user-${userKey}-dizang_zhong-count`).innerText = p.dizang_zhong || 0;
-                document.getElementById(`user-${userKey}-dizang_xia-count`).innerText = p.dizang_xia || 0;
+                // Sub-volumes breakdown (if elements exist)
+                const sCount = document.getElementById(`user-${userKey}-dizang_shang-count`);
+                if (sCount) sCount.innerText = p.dizang_shang || 0;
+                const zCount = document.getElementById(`user-${userKey}-dizang_zhong-count`);
+                if (zCount) zCount.innerText = p.dizang_zhong || 0;
+                const xCount = document.getElementById(`user-${userKey}-dizang_xia-count`);
+                if (xCount) xCount.innerText = p.dizang_xia || 0;
             });
 
             // 7. Render Filtered Recent Logs
