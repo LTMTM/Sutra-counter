@@ -1,14 +1,8 @@
-/* STREAMING_CHUNK:Configuring Vercel routes... /
 {
-"version": 2,
 "rewrites": [
 {
-"source": "/api/(.)",
+"source": "/api/:path*",
 "destination": "/api/index.js"
-},
-{
-"source": "/(.*)",
-"destination": "/$1"
 }
 ]
 }
