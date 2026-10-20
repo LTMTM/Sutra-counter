@@ -80,6 +80,62 @@
             background: #b08351;
             border-radius: 3px;
         }
+
+        .reading-calendar {
+            background: #55392d;
+            border: 1px solid #7e5339;
+            border-radius: 1rem;
+            padding: clamp(1rem, 4vw, 1.5rem);
+        }
+        .calendar-heading, .calendar-toolbar, .calendar-selection {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: .75rem;
+        }
+        .calendar-heading h2 { color: #d4af37; font-size: 1.15rem; font-weight: bold; }
+        .calendar-caption { color: #d3bc9d; font-size: .75rem; line-height: 1.8; margin-top: .5rem; }
+        .calendar-today { background: #2d1c15; border-radius: .75rem; padding: .6rem 1rem; color: #d4af37; }
+        .calendar-toolbar { margin: 1.25rem 0 1rem; }
+        .calendar-toolbar h3 { font-size: 1rem; font-weight: bold; }
+        .calendar-controls { display: flex; align-items: center; gap: .5rem; }
+        .calendar-controls button, .calendar-start {
+            border: 1px solid #b08351;
+            border-radius: .5rem;
+            padding: .5rem .75rem;
+            background: #2d1c15;
+            color: #f3ede2;
+            font-size: .8rem;
+            cursor: pointer;
+        }
+        .calendar-weekdays, .calendar-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .35rem; }
+        .calendar-weekdays { text-align: center; color: #d3bc9d; font-size: .75rem; margin-bottom: .5rem; }
+        .calendar-day {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: .25rem;
+            min-height: 4.25rem;
+            padding: .4rem .1rem;
+            background: #2d1c15;
+            border: 1px solid #674433;
+            border-radius: .6rem;
+            color: #f3ede2;
+            font-size: .85rem;
+            cursor: pointer;
+        }
+        .calendar-day-volume { font-size: .7rem; color: #d3bc9d; }
+        .calendar-day[aria-current="date"] { border-color: #d4af37; }
+        .calendar-day[aria-current="date"] .calendar-day-number::after { content: ' ·'; color: #d4af37; }
+        .calendar-day[aria-pressed="true"] { background: #7e5339; border-color: #d4af37; color: #ffe399; }
+        .calendar-day[aria-pressed="true"] .calendar-day-volume { color: #ffe399; }
+        .calendar-day:hover, .calendar-controls button:hover { background: #674433; }
+        .reading-calendar button:focus-visible { outline: 2px solid #ffe399; outline-offset: 3px; }
+        .calendar-selection { border-top: 1px solid #7e5339; margin-top: 1rem; padding-top: 1rem; }
+        .calendar-selection p { font-size: .85rem; line-height: 1.8; }
+        .calendar-start { background: #d4af37; color: #2d1c15; font-weight: bold; }
     </style>
 </head>
 <body class="h-full bg-zen-950 text-zen-100 flex flex-col justify-between overflow-x-hidden antialiased">
@@ -126,6 +182,10 @@
             <button onclick="switchTab('stats')" id="tab-btn-stats" class="flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center space-x-2 text-zen-300 hover:text-zen-100">
                 <i class="fa-solid fa-chart-line"></i>
                 <span>個人與共修獨立統計</span>
+            </button>
+            <button onclick="switchTab('calendar')" id="tab-btn-calendar" class="flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center space-x-2 text-zen-300 hover:text-zen-100">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>讀經日曆</span>
             </button>
         </div>
 
@@ -391,6 +451,35 @@
             </div>
         </section>
 
+        <section id="tab-calendar" class="hidden" aria-labelledby="reading-calendar-title">
+            <div class="reading-calendar">
+                <div class="calendar-heading">
+                    <h2 id="reading-calendar-title">地藏經・每日一卷</h2>
+                    <p class="calendar-today" id="reading-calendar-today"></p>
+                </div>
+                <p class="calendar-caption">卷上 → 卷中 → 卷下，每日依序循環。以香港時間為準。</p>
+                <div class="calendar-toolbar">
+                    <h3 id="reading-calendar-month" aria-live="polite"></h3>
+                    <div class="calendar-controls">
+                        <button type="button" onclick="moveReadingMonth(-1)" aria-label="上一個月">‹</button>
+                        <button type="button" onclick="goToReadingToday()">回到今天</button>
+                        <button type="button" onclick="moveReadingMonth(1)" aria-label="下一個月">›</button>
+                    </div>
+                </div>
+                <div class="calendar-weekdays" aria-hidden="true">
+                    <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
+                </div>
+                <div id="reading-calendar-days" class="calendar-days" role="group" aria-labelledby="reading-calendar-month"></div>
+                <div class="calendar-selection">
+                    <div aria-live="polite">
+                        <p id="reading-calendar-selected"></p>
+                        <p class="calendar-caption">選擇日期查看安排，完成誦讀後可到計數頁記錄。</p>
+                    </div>
+                    <button type="button" class="calendar-start" id="reading-calendar-start" onclick="startSelectedReading()"></button>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <!-- Manual Input Modal -->
@@ -464,9 +553,124 @@
 
         /* ==================== INITIALIZATION & STORAGE ==================== */
         window.onload = async function() {
+            renderReadingCalendar();
             await syncWithServerState();
             renderUI();
         };
+
+        /* ==================== DAILY READING CALENDAR ==================== */
+        const READING_DAY_MS = 86400000;
+        // 2026-10-18 (Hong Kong) is 卷下; keep this anchor fixed across visits/devices.
+        const READING_ANCHOR_DAY = Date.UTC(2026, 9, 18) / READING_DAY_MS;
+        const READING_VOLUMES = [
+            { label: '卷上', scriptureId: 'dizang_shang' },
+            { label: '卷中', scriptureId: 'dizang_zhong' },
+            { label: '卷下', scriptureId: 'dizang_xia' }
+        ];
+
+        function getHongKongReadingDay(now = new Date()) {
+            const parts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Hong_Kong', year: 'numeric', month: 'numeric', day: 'numeric'
+            }).formatToParts(now);
+            const part = type => Number(parts.find(value => value.type === type).value);
+            return Date.UTC(part('year'), part('month') - 1, part('day')) / READING_DAY_MS;
+        }
+
+        function getReadingVolume(day) {
+            const offset = day - READING_ANCHOR_DAY + 2;
+            return READING_VOLUMES[((offset % 3) + 3) % 3];
+        }
+
+        let readingToday = getHongKongReadingDay();
+        let readingSelectedDay = readingToday;
+        let readingMonth = new Date(readingToday * READING_DAY_MS);
+
+        function renderReadingCalendar() {
+            const year = readingMonth.getUTCFullYear();
+            const month = readingMonth.getUTCMonth();
+            const firstDate = new Date(Date.UTC(year, month, 1));
+            const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+            document.getElementById('reading-calendar-today').textContent = `今日：${getReadingVolume(readingToday).label}`;
+            document.getElementById('reading-calendar-month').textContent = `${year} 年 ${month + 1} 月`;
+            const days = document.getElementById('reading-calendar-days');
+            days.replaceChildren();
+            for (let blank = 0; blank < firstDate.getUTCDay(); blank++) {
+                const spacer = document.createElement('span');
+                spacer.setAttribute('aria-hidden', 'true');
+                days.appendChild(spacer);
+            }
+            for (let date = 1; date <= daysInMonth; date++) {
+                const day = Date.UTC(year, month, date) / READING_DAY_MS;
+                const volume = getReadingVolume(day);
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'calendar-day';
+                button.dataset.date = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+                button.setAttribute('aria-label', `${year}年${month + 1}月${date}日，${volume.label}${day === readingToday ? '，今天' : ''}`);
+                button.setAttribute('aria-pressed', String(day === readingSelectedDay));
+                if (day === readingToday) button.setAttribute('aria-current', 'date');
+                button.innerHTML = `<span class="calendar-day-number">${date}</span><span class="calendar-day-volume">${volume.label}</span>`;
+                button.addEventListener('click', () => selectReadingDay(day));
+                days.appendChild(button);
+            }
+            renderReadingSelection();
+        }
+
+        function renderReadingSelection() {
+            const date = new Date(readingSelectedDay * READING_DAY_MS);
+            const label = new Intl.DateTimeFormat('zh-HK', {
+                timeZone: 'UTC', month: 'long', day: 'numeric', weekday: 'long'
+            }).format(date);
+            const volume = getReadingVolume(readingSelectedDay);
+            document.getElementById('reading-calendar-selected').textContent = `${label} · ${volume.label}`;
+            document.getElementById('reading-calendar-start').textContent = `選擇${volume.label}開始計數`;
+        }
+
+        function selectReadingDay(day) {
+            readingSelectedDay = day;
+            const selectedDate = new Date(day * READING_DAY_MS).toISOString().slice(0, 10);
+            document.querySelectorAll('.calendar-day').forEach(button => {
+                button.setAttribute('aria-pressed', String(button.dataset.date === selectedDate));
+            });
+            renderReadingSelection();
+        }
+
+        function moveReadingMonth(direction) {
+            readingMonth = new Date(Date.UTC(readingMonth.getUTCFullYear(), readingMonth.getUTCMonth() + direction, 1));
+            const today = new Date(readingToday * READING_DAY_MS);
+            readingSelectedDay = readingMonth.getUTCFullYear() === today.getUTCFullYear() && readingMonth.getUTCMonth() === today.getUTCMonth()
+                ? readingToday : readingMonth.getTime() / READING_DAY_MS;
+            renderReadingCalendar();
+        }
+
+        function goToReadingToday() {
+            readingToday = getHongKongReadingDay();
+            readingSelectedDay = readingToday;
+            readingMonth = new Date(readingToday * READING_DAY_MS);
+            renderReadingCalendar();
+        }
+
+        function startSelectedReading() {
+            setScripture(getReadingVolume(readingSelectedDay).scriptureId);
+            switchTab('counter');
+        }
+
+        function refreshReadingCalendarDate() {
+            const today = getHongKongReadingDay();
+            if (today === readingToday) return;
+            const followToday = readingSelectedDay === readingToday;
+            readingToday = today;
+            if (followToday) {
+                readingSelectedDay = today;
+                readingMonth = new Date(today * READING_DAY_MS);
+            }
+            renderReadingCalendar();
+        }
+
+        setInterval(refreshReadingCalendarDate, 60000);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) refreshReadingCalendarDate();
+        });
 
         async function syncWithServerState() {
             try {
@@ -901,7 +1105,7 @@
 
         /* ==================== TAB NAVIGATION ==================== */
         function switchTab(tabName) {
-            const tabs = ['counter', 'stats'];
+            const tabs = ['counter', 'stats', 'calendar'];
             tabs.forEach(t => {
                 const el = document.getElementById(`tab-${t}`);
                 const btn = document.getElementById(`tab-btn-${t}`);
